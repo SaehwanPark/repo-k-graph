@@ -1,0 +1,3 @@
+{"jsonrpc":"2.0","id":{"client":"antigravity","seq":1},"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"antigravity","version":"smoke"}}}
+{"jsonrpc":"2.0","id":{"client":"antigravity","seq":2},"method":"tools/list","params":{}}
+{"jsonrpc":"2.0","id":{"client":"antigravity","seq":3},"method":"tools/call","params":{"name":"find_symbol","arguments":{"name":"sum"}}}

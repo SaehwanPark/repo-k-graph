@@ -1,0 +1,27 @@
+[workspace]
+members = [
+  "crates/rkg-cli",
+  "crates/rkg-core",
+  "crates/rkg-db",
+  "crates/rkg-indexer",
+  "crates/rkg-query",
+  "crates/rkg-lang-fsharp",
+  "crates/rkg-lang-python",
+  "crates/rkg-lang-rust",
+  "crates/rkg-lang-mojo",
+  "crates/rkg-lang-kotlin",
+  "crates/rkg-lang-swift",
+  "crates/rkg-mcp",
+]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+version = "1.0.12"
+description = "Deterministic repository knowledge graphs and context infrastructure for AI-assisted software engineering."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/SaehwanPark/repo-k-graph"
+
+[workspace.dependencies]
+rkg-core = { path = "crates/rkg-core" }

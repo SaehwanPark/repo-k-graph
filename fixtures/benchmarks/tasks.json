@@ -1,0 +1,164 @@
+[
+  {
+    "id": "py-01",
+    "language": "python",
+    "repo": "python",
+    "target_symbol": "src.main::run",
+    "expected_files": ["src/main.py", "src/utils.py"],
+    "expected_symbols": ["src.main::run", "src.utils::helper"],
+    "description": "Trace direct helper function call"
+  },
+  {
+    "id": "py-02",
+    "language": "python",
+    "repo": "python",
+    "target_symbol": "src.main::Application",
+    "expected_files": ["src/main.py"],
+    "expected_symbols": ["src.main::Application"],
+    "description": "Trace Application class definition"
+  },
+  {
+    "id": "py-03",
+    "language": "python",
+    "repo": "python",
+    "target_symbol": "tests.test_main::test_run",
+    "expected_files": ["src/main.py", "tests/test_main.py"],
+    "expected_symbols": ["tests.test_main::test_run", "src.main::run"],
+    "description": "Trace test function calling run"
+  },
+  {
+    "id": "rust-01",
+    "language": "rust",
+    "repo": "rust",
+    "target_symbol": "src::lib::run",
+    "expected_files": ["src/lib.rs", "src/helper.rs"],
+    "expected_symbols": ["src::lib::run", "src::helper::utils"],
+    "description": "Trace rust run function to helper module"
+  },
+  {
+    "id": "rust-02",
+    "language": "rust",
+    "repo": "rust",
+    "target_symbol": "src::lib::User",
+    "expected_files": ["src/lib.rs"],
+    "expected_symbols": ["src::lib::User"],
+    "description": "Trace User struct"
+  },
+  {
+    "id": "rust-03",
+    "language": "rust",
+    "repo": "rust",
+    "target_symbol": "tests::integration::test_run",
+    "expected_files": ["src/lib.rs", "tests/integration.rs"],
+    "expected_symbols": ["tests::integration::test_run", "src::lib::run"],
+    "description": "Trace integration test to run function"
+  },
+  {
+    "id": "fs-01",
+    "language": "fsharp",
+    "repo": "fsharp",
+    "target_symbol": "Library.run",
+    "expected_files": ["Library.fs"],
+    "expected_symbols": ["Library.run", "Library.helper"],
+    "description": "Trace F# operations run to helper"
+  },
+  {
+    "id": "fs-02",
+    "language": "fsharp",
+    "repo": "fsharp",
+    "target_symbol": "Library.User",
+    "expected_files": ["Library.fs"],
+    "expected_symbols": ["Library.User"],
+    "description": "Trace F# User record type"
+  },
+  {
+    "id": "fs-03",
+    "language": "fsharp",
+    "repo": "fsharp",
+    "target_symbol": "Program.main",
+    "expected_files": ["Library.fs", "Program.fs"],
+    "expected_symbols": ["Program.main", "Library.run"],
+    "description": "Trace F# entry point calling library run"
+  },
+  {
+    "id": "mojo-01",
+    "language": "mojo",
+    "repo": "mojo",
+    "target_symbol": "main::run",
+    "expected_files": ["main.mojo", "helper.mojo"],
+    "expected_symbols": ["main::run", "helper::do_work"],
+    "description": "Trace Mojo run to do_work"
+  },
+  {
+    "id": "mojo-02",
+    "language": "mojo",
+    "repo": "mojo",
+    "target_symbol": "main::User",
+    "expected_files": ["main.mojo"],
+    "expected_symbols": ["main::User"],
+    "description": "Trace Mojo User struct"
+  },
+  {
+    "id": "mojo-03",
+    "language": "mojo",
+    "repo": "mojo",
+    "target_symbol": "test_helper::test_run",
+    "expected_files": ["main.mojo", "test_helper.mojo"],
+    "expected_symbols": ["test_helper::test_run", "main::run"],
+    "description": "Trace Mojo test calling run"
+  },
+  {
+    "id": "kt-01",
+    "language": "kotlin",
+    "repo": "kotlin",
+    "target_symbol": "com.example::App.Companion.run",
+    "expected_files": ["src/main/kotlin/App.kt", "src/main/kotlin/Service.kt"],
+    "expected_symbols": ["com.example::App.Companion.run", "com.example::Service.execute"],
+    "description": "Trace Kotlin App run calling Service execute"
+  },
+  {
+    "id": "kt-02",
+    "language": "kotlin",
+    "repo": "kotlin",
+    "target_symbol": "com.example::Service",
+    "expected_files": ["src/main/kotlin/Service.kt"],
+    "expected_symbols": ["com.example::Service"],
+    "description": "Trace Kotlin Service object"
+  },
+  {
+    "id": "kt-03",
+    "language": "kotlin",
+    "repo": "kotlin",
+    "target_symbol": "com.example::AppTest.testApp",
+    "expected_files": ["src/main/kotlin/App.kt", "src/test/kotlin/AppTest.kt"],
+    "expected_symbols": ["com.example::AppTest.testApp", "com.example::App.Companion.run"],
+    "description": "Trace Kotlin test calling App run"
+  },
+  {
+    "id": "swift-01",
+    "language": "swift",
+    "repo": "swift",
+    "target_symbol": "Sources.App::App.run",
+    "expected_files": ["Sources/App.swift", "Sources/Helper.swift"],
+    "expected_symbols": ["Sources.App::App.run", "Sources.Helper::Helper.compute"],
+    "description": "Trace Swift App run calling Helper compute"
+  },
+  {
+    "id": "swift-02",
+    "language": "swift",
+    "repo": "swift",
+    "target_symbol": "Sources.Helper::Helper",
+    "expected_files": ["Sources/Helper.swift"],
+    "expected_symbols": ["Sources.Helper::Helper"],
+    "description": "Trace Swift Helper struct"
+  },
+  {
+    "id": "swift-03",
+    "language": "swift",
+    "repo": "swift",
+    "target_symbol": "Tests.AppTests::AppTests.testRun",
+    "expected_files": ["Sources/App.swift", "Tests/AppTests.swift"],
+    "expected_symbols": ["Tests.AppTests::AppTests.testRun", "Sources.App::App.run"],
+    "description": "Trace Swift test calling App run"
+  }
+]

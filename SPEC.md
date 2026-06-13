@@ -1,0 +1,386 @@
+# SPEC
+
+## Past
+- Initial project proposal, high-level architecture notes, and development roadmap were drafted under `docs/`.
+- Initial Rust package scaffold existed as a single binary crate.
+- Phase 0 project foundation was completed with:
+  - Rust workspace and Phase 0 crate layout
+  - CI workflow for formatting, clippy, and tests
+  - `rustfmt.toml` with 2-space indentation
+  - sample Python fixture repository under `fixtures/sample-repos/python-basic/`
+  - core domain model types in `rkg-core`
+  - repo-local agent harness and spec-driven project docs
+- Phase 1.1 local knowledge store schema was completed with:
+  - SQLite bootstrap API in `rkg-db`
+  - idempotent schema initialization
+  - tables for `repositories`, `files`, `symbols`, `edges`, `docs`, `tests`, and `index_runs`
+  - schema-focused tests for table creation and baseline constraints
+- Phase 1.2 basic persistence API was completed with:
+  - insert APIs for files, symbols, and edges
+  - lookup API for files by path
+  - lookup API for symbols by name
+  - file delete API by path
+  - file reindex API using deterministic delete-and-reinsert flow
+- Phase 1.3 CLI database commands were completed with:
+  - `rkg init` for local database bootstrapping at `./.rkg/rkg.db`
+  - `rkg db status` for path, existence, schema, and core-table count reporting
+  - `rkg db reset` for deterministic non-interactive local database recreation
+- Phase 2.1 repository ingestion foundation was completed with:
+  - repository root detection from nested working paths via `.git` ancestor lookup
+  - deterministic file discovery that honors `.gitignore` and `.rkgignore`
+  - language detection from common file extensions
+  - file content hashing and line-count metadata extraction
+  - focused indexing tests for root detection, ignore semantics, hashing, and deterministic ordering
+- Phase 2.2 incremental indexing was completed with:
+  - deterministic `changed`/`unchanged`/`deleted` classification against persisted file snapshots
+  - repository upsert and repository-scoped file listing APIs in `rkg-db`
+  - index run lifecycle APIs in `rkg-db` (`start` + `finish` metadata updates)
+  - focused tests for incremental classification and run metadata persistence
+- Phase 2.3 CLI ingestion commands were completed with:
+  - `rkg index` default incremental indexing flow
+  - `rkg index --changed` alias behavior for incremental flow
+  - `rkg index --force` reindex flow for discovered files plus deletion tracking
+  - `rkg files` repository-scoped indexed file listing
+  - focused CLI integration tests for incremental reruns, force mode, deletion tracking, and file listing
+- Phase 3.1 Python parser integration was completed with:
+  - Tree-sitter Python parser integration in `rkg-lang-python`
+  - deterministic syntax-tree traversal and parse diagnostics APIs
+  - non-fatal parse-error reporting during `rkg index` runs
+  - focused unit/integration test coverage for parse success, malformed input reporting, and deterministic summaries
+- Phase 3.2 Python symbol extraction was completed with:
+  - recursive AST traversal extracting classes, methods, and functions (sync/async/nested) from Python source
+  - automated package-scoped qualified name resolution matching existing conventions
+  - file-level module symbol extraction with precise source range metadata
+  - focused symbol parser tests and DB-layer persistence/lookup query tests
+- Phase 3.3 CLI symbol commands were completed with:
+  - `rkg symbols` repository symbol index listing
+  - `rkg find <name>` simple-name fast lookup command
+  - `rkg show <qualified_name>` definition snippet extraction and metadata viewer
+  - end-to-end integration tests verifying symbol parsing, listing, finding, and code snippet rendering
+- Phase 4.1 Python import graph was completed with:
+  - Tree-sitter Python import statement parsing (`import x`, `import x as y`, `from x import y`, and relative imports)
+  - Automatic incremental import resolution resolving target references against newly indexed repository modules or symbols
+  - Edge-level persistence storing imports in local SQLite store
+  - Unified CLI query commands `rkg imports <path>` and `rkg imported-by <path>` with resolved/unresolved status reporting
+  - Comprehensive unit and integration test coverage for imports extraction, DB resolution, and CLI query outputs
+- Phase 4.2 Python call graph was completed with:
+  - Tree-sitter Python call statement parsing extracting direct function/class calls, self-method calls, constructor calls, and dynamic method calls
+  - DB persistence of calls as `Calls` edges in SQLite with appropriate confidence ratings
+  - Post-indexing resolution of unresolved calls repository-wide where unique matches exist
+  - Unified CLI query commands `rkg callers <name>` and `rkg callees <name>`
+  - Comprehensive unit and integration test coverage for call extraction, DB lookup/resolution, and CLI output formatters
+- Phase 4.3 Python type references was completed with:
+  - Tree-sitter Python type annotation parsing covering class base types (superclasses), function parameters type annotations, function return type annotations, typed variable assignments, and generic type wrappers (such as `list[T]`, `typing.Optional[T]`) while filtering out common built-ins.
+  - SQLite persistence of type annotations as `ReferencesType` edges.
+  - Post-indexing resolution of unresolved types repository-wide where unique matches exist.
+  - Unified CLI query command `rkg types <name>` supporting forward and backward type lookup.
+  - Comprehensive unit and integration test coverage for type reference extraction, DB resolution, and CLI query outputs.
+- Phase 4.4 Python decorator extraction was completed with:
+  - Tree-sitter Python decorator statement parsing covering class, function, and method decorators (including call-tail arguments removal for route decorators and dotted names for pytest decorators).
+  - SQLite persistence of decorator modifications as `ModifiedWith` edges.
+  - Post-indexing resolution of unresolved decorator edges repository-wide.
+  - Unified CLI query command `rkg decorators <name>` supporting forward decorator query and backward decorated symbols query.
+  - Comprehensive unit and integration test coverage for decorator extraction, DB resolution, and CLI query outputs.
+- Phase 5.1 Python test discovery was completed with:
+  - SQLite schema bootstrap updates for `tests` table adding `kind` and `is_parametrized` columns.
+  - Insert and lookup APIs in `rkg-db` for `tests` and cascaded deletion on file deletion.
+  - Tree-sitter AST parser in `rkg-lang-python` to extract test classes, test functions, fixtures, and parametrize decorators.
+  - CLI indexing integration running test discovery on python files.
+  - Comprehensive unit and integration test coverage verifying discovery, persistence, and cascades.
+- Phase 5.2 Python test-to-symbol linkage was completed with:
+  - Function parameter parsing in `rkg-lang-python` to extract test parameters as potential fixture dependencies.
+  - `edges` table storage in SQLite supporting unresolved fixture dependencies (`ConfiguredBy` edges) and name similarity linkages (`TestedBy` edges).
+  - Unresolved test linkages resolution in `resolve_unresolved_edges`.
+  - Automatic test call propagation in `resolve_direct_call_test_linkages` mapping resolved `Calls` from tests to implementation symbols into `TestedBy` edges.
+- Phase 5.3 CLI test query commands were completed with:
+  - Clap subcommands `rkg tests <symbol>`, `rkg test-deps <test>`, and `rkg fixtures <test>`.
+  - Focused database lookup queries and routing layer in `rkg-query` and `rkg-db`.
+  - Comprehensive integration test coverage verifying end-to-end extraction, resolution, call propagation, and CLI output formats.
+- Phase 6.1: Markdown & Docstrings was completed with:
+  - File-level markdown sectioning based on heading hierarchies.
+  - Python docstring extraction for modules, classes, methods, and functions using tree-sitter.
+- Phase 6.2: Symbol-Doc Linkage was completed with:
+  - Automatic post-indexing resolution linking symbols to ownership-level docstrings, same-name heading matches, and qualified name mentions in markdown files.
+- Phase 6.3: CLI Doc Queries was completed with:
+  - CLI commands `rkg docs <symbol>` and `rkg doc-search <query>` with elegant terminal formatting and preview truncation.
+
+- Phase 7: Deterministic Query Engine was completed with:
+  - Bounded-depth BFS graph traversal engine in `rkg-query` traversing calls, imports, type references, and decorators.
+  - Starting symbol resolver with exact and fuzzy name resolution.
+  - Comprehensive impact analysis tracing upstream blast-radius, downstream dependencies, linked tests, and affected documentation.
+  - CLI `rkg impact <symbol> --depth <N>` command with elegant hierarchical terminal layout.
+  - Comprehensive unit and integration test coverage in `rkg-query` and `rkg-cli`.
+- Phase 8: Context Packing was completed with:
+  - Token budget estimation and tier-based trimming to optimize context selection for downstream agents.
+  - Beautiful, provenance-first Markdown formatting and structured JSON output.
+  - CLI command `rkg context <symbol> [--budget <N>] [--format <format>]`.
+  - Comprehensive unit and integration test coverage across `rkg-query` and `rkg-cli`.
+- Phase 9: Model Context Protocol (MCP) Server was completed with:
+  - Standard JSON-RPC 2.0 stdio MCP server implementation in `crates/rkg-mcp`.
+  - CLI command `rkg mcp serve` to start the stdio server.
+  - Standard MCP server initialization, tool listing, and robust tool dispatch.
+  - Direct integration of 8 premium tools (`find_symbol`, `get_symbol`, `get_callers`, `get_callees`, `get_docs`, `get_tests`, `get_impact_analysis`, and `get_context_pack`) leveraging existing domain queries in `rkg-query`.
+  - Intelligent substring fallback search in `find_symbol` tool.
+  - Comprehensive unit/integration test suite verifying JSON-RPC lifecycle, tool registry, and content generation.
+- Phase 9.3a: MCP stdio transcript smoke coverage was completed with:
+  - Checked-in JSONL transcript fixtures for Codex-style, Claude Code-style, ForgeCode-style, and AntiGravity-style local stdio clients.
+  - Process-level `rkg mcp serve` integration coverage validating initialize, ping, tool listing, successful tool calls, error handling, and notification behavior.
+  - Explicit stdout/stderr separation checks ensuring stdout remains JSON-RPC protocol-only while diagnostics stay on stderr.
+- Phase 9.3b: Agent client configuration examples was completed with:
+  - Minimal documented local stdio configuration examples for Codex, Claude Code, ForgeCode, and Antigravity-style clients in `docs/user-manual.md`.
+  - Deterministic documentation coverage verifying each supported client points at `rkg mcp serve` without requiring network access, hosted accounts, or GUI automation.
+
+- Phase 10: Git Intelligence was completed with:
+  - SQLite schema expansions adding `git_commits`, `git_commit_files`, and `git_commit_symbols` tables with performance-optimized indexes.
+  - Spawning-based standard Git CLI history log and commit diff parsing in `rkg-indexer` with error tolerance warning early return.
+  - Core domain models `GitCommitInfo`, `GitFileMetadata`, `CochangeRecord`, and `CochangeAnalysis` defined in `rkg-core`.
+  - Unified persistence and query helpers in `rkg-db` and `rkg-query` computing author frequencies, file/symbol churn, last-modified commit details, and self-joining co-change counts and percentages on the fly.
+  - Integrated Git history indexing step wired to the main CLI index pipeline post symbol/doc resolution.
+  - Premium formatting subcommands `rkg git <file>` and `rkg cochange <symbol_or_file>` in `rkg-cli`.
+  - Highly robust end-to-end integration tests using programmatically initialized Git repositories with multiple commits.
+- Phase 11.1: FastAPI route and dependency extraction was completed with:
+  - SQLite `routes` table and optimized indexes bootstrap in `rkg-db`.
+  - Tree-sitter based FastAPI route decorator (GET/POST/PUT/DELETE/PATCH/OPTIONS/HEAD/custom route with methods) and response model parser in `rkg-lang-python`.
+  - Depends() explicit and type-inferred dependency injection linkage parser in `rkg-lang-python`.
+  - Ingestion pipeline integration automatically indexing FastAPI routes and saving parameter injection linkages as `ConfiguredBy` edges.
+  - Subcommand `rkg routes` in `rkg-cli` rendering aligned, premium route tables with HTTP methods, paths, handlers, response models, and resolved dependencies.
+  - Comprehensive integration and unit tests covering all routes and dependency features.
+- Phase 11.2: Flask route parsing was completed with:
+  - Variable-based Flask Blueprint AST instantiation parser and `url_prefix` extractor in `rkg-lang-python`.
+  - Direct route decorators (e.g. `@auth_bp.route`) and direct method decorators (e.g. `@auth_bp.get`) with fully-resolved slash-safe blueprint prefix route path resolution in `rkg-lang-python`.
+  - Focused unit and integration tests verifying successful extraction, SQLite storage, and `rkg routes` listing.
+- Phase 11.3: Pydantic fields was completed with:
+  - Defined core domain models `PydanticField`, `PydanticValidator`, and `PydanticModel` in `rkg-core`.
+  - Expanded SQLite schema in `rkg-db` adding `pydantic_models`, `pydantic_fields`, and `pydantic_validators` tables with CASCADE delete constraints and indexes.
+  - Implemented robust Tree-sitter AST parsing in `rkg-lang-python` to extract Pydantic models (inheriting from `BaseModel`), fields (with annotations, ellipsis-based requirements, default values), and validators (field and model decorators with targeted field arguments).
+  - Integrated Pydantic extraction automatically into the CLI file indexing pipeline in `rkg-cli`.
+  - Implemented a premium terminal subcommand `rkg model <name>` in `rkg-cli` rendering aligned, beautifully formatted fields, validators, and resolved model dependencies.
+  - Added comprehensive unit and integration test coverage verifying the entire Pydantic parser, persistence, and CLI lookup engine.
+- Phase 11.4: Python DS/ML was completed with:
+  - Supported `.ipynb` file extension in indexer discovery and language detection mapping to `"jupyter"`.
+  - Implemented robust Jupyter Notebook JSON deserialization handling untagged string and array source formats.
+  - Integrated notebook code cell parsing running all existing AST extractions (symbols, imports, calls, type references, tests, decorators, docstrings, routes, models) with virtual cell-based path mapping (`path/to/notebook.ipynb#cell_{idx}`).
+  - Implemented robust PyTorch `nn.Module` submodule static symbol extraction and automated computational graph sequence traversal in `forward` methods mapping layer invocations.
+  - Implemented static Pandas/Polars dataframe column reference extraction from select/filter/groupby/agg/join method chains as `col::<column>` type references.
+  - Added comprehensive unit and integration test coverage verifying Jupyter ingestion, PyTorch submodules, graph traversals, and dataframe column lineages via CLI lookups.
+- Phase 11.5: Python ROP & Monads was completed with:
+  - Robust Tree-sitter AST parser in `rkg-lang-python` extracting monadic pipeline method chains (`.bind()`, `.then()`, `.pipe()`) and pipelining binary operators (`>>`, `>>=`).
+  - Automated translation of higher-order function references (passed to `map`, `filter`, `reduce`, `flatMap`, `apply`, `compose`, `pipe`) and partial applications (`partial`, `functools.partial`) into standard `Calls` edges in SQLite.
+  - Premium terminal subcommand `rkg pipeline <symbol>` in `rkg-cli` rendering beautiful sequence trees of the pipeline's execution and tracking downstream fail-fast error blast-radius (bypassed on preceding failure) based on source-occurrence ordering.
+  - Comprehensive unit and integration test coverage verifying AST extraction, DB persistence, and CLI sequence rendering.
+- Phase 12.1: Rust symbols support was completed with:
+  - Robust Tree-sitter AST parser in `rkg-lang-rust` extracting modules, functions, structs, enums, traits, impl blocks, and methods.
+  - Advanced package-scoped qualified name resolution using scope stack.
+  - Seamless integration into standard CLI indexing pipeline supporting `.rs` files.
+  - Comprehensive unit and integration test coverage verifying Rust symbol discovery, DB persistence, find lookup, and show rendering.
+- Phase 12.2: Rust relationships was completed with:
+  - Robust Tree-sitter AST parsers in `rkg-lang-rust` extracting imports (from `use` declarations), implementations (from `impl` blocks), method/function calls (from call expressions), and type references (from parameters, return types, and field types while filtering out common primitives).
+  - Adaptation of database edge resolution supporting Rust `::` scope delimiters for parent/child fallback matching.
+  - Seamless integration into standard CLI indexing pipeline indexing all relationships for `.rs` files.
+  - Comprehensive unit and integration test coverage verifying Rust relationship extraction, DB persistence, edge resolution, and CLI queries (`imports`, `callers`, `types`).
+- Phase 12.3: Rust tests was completed with:
+  - Robust Tree-sitter AST parser in `rkg-lang-rust` extracting test functions (annotated with standard `#[test]` or async framework tests like `#[tokio::test]`, `#[test_case]`, `#[rstest]`) and test modules (annotated with `#[cfg(test)]` or named `test`/`tests`).
+  - Qualified name module-scoped resolution for extracted Rust tests.
+  - Seamless integration into standard CLI indexing pipeline indexing all unit and integration tests for `.rs` files.
+  - Automatic test similarity TestedBy and fixture ConfiguredBy linkages resolution post-indexing.
+  - Comprehensive unit and integration test coverage verifying Rust test discovery, TestedBy similarity TestedBy linkage resolution, call-propagation tested-by linkages, and CLI queries (`tests`, `test-deps`).
+- Phase 12.4: Rust Cargo Workspaces & Dependency Graphs was completed with:
+  - Implemented line-by-line Cargo workspace manifest (`Cargo.toml`) and lockfile (`Cargo.lock`) parsing in `rkg-indexer` mapping package structures, workspace dependency inheritance, and exact resolved versions.
+  - Expanded SQLite DB schemas and persistence APIs in `rkg-db` introducing `cargo_packages` and `cargo_dependencies` tables.
+  - Implemented dynamic external import resolution during indexing to virtual external symbols (e.g. `external:tokio` in `files` table, `tokio::sync::mpsc` in `symbols` table).
+  - Automatically synthesized `docs.rs` doc-linkage URLs with correct resolved lockfile package versions for virtual external symbols.
+  - Implemented conditional AST traversal pruning in `rkg-lang-rust` evaluating `#[cfg(feature = "...")]` and `#[cfg(not(feature = "..."))]` attributes matching active compiler feature flags.
+  - Introduced premium CLI commands `rkg workspace` and `rkg deps <package>` in `rkg-cli` rendering beautifully aligned terminal views of workspace packages and dependency topologies.
+  - Added comprehensive integration tests (`cargo_workspace.rs`) verifying all features-aware AST traversal, dependency persistence, external imports target resolution, docs.rs doc-linkage mapping, and CLI rendering.
+- Phase 12.5: Rust Macro Expansion was completed with:
+  - Implemented robust `#[derive(...)]` attribute parser in `rkg-lang-rust` to statically simulate common macro packages (Serde, Thiserror, Clap) and map them to fully qualified implementations.
+  - Implemented post-macro AST extraction stage in `rkg-cli` under a new `--expand` command argument.
+  - Integrated programmatic `cargo expand` execution, syntax-tree parsing, and target-file mapping to bind macro-expanded symbols and relationships back to their home files in the graph.
+  - Added comprehensive unit and integration test coverage verifying simulated derive extraction and dynamic post-macro AST indexing.
+- Phase 12.6: Rust Tokio Concurrency Topology was completed with:
+  - Added `Spawns` and `SendsTo` variants to `EdgeKind` in `rkg-core` for async execution and message passing.
+  - Implemented static async spawn tracking (`tokio::spawn`, `std::thread::spawn`) in `rkg-lang-rust`.
+  - Implemented dynamic receiver/transmitter pairings tracing local variables destructuring (`let (tx, rx) = ...`) and `.send()`/`.recv()` calls.
+  - Implemented `tokio::select!` block tracking.
+  - Updated query engine and impact analysis BFS propagation.
+  - Implemented beautiful `rkg topology` command and CLI index reporting format.
+  - Defined core domain models `ConcurrencySpawn`, `ConcurrencyChannel`, and `ConcurrencySelect` in `rkg-core`.
+  - Expanded SQLite DB schemas and persistence APIs in `rkg-db` introducing `concurrency_spawns`, `concurrency_channels`, and `concurrency_selects` tables with cascade deletion constraints on `file_id`.
+  - Designed a high-fidelity Tree-sitter-based Rust AST parser in `rkg-lang-rust` extracting spawner targets (`tokio::spawn`, `std::thread::spawn`), let-binding tuple channel pair constructions, and `tokio::select!` block locations.
+  - Implemented the `get_concurrency_topology` query service inside `rkg-query` to pull spawns, channel creations, and select statements in a symbol's scope.
+  - Wired concurrency indexing into the main CLI indexing pipeline of `rkg-cli`.
+  - Implemented a premium visual terminal subcommand `rkg concurrency <symbol>` in `rkg-cli` rendering aligned, beautifully formatted concurrent and asynchronous topologies.
+  - Added comprehensive unit and integration test suites validating all parsing, persistence, query, and CLI flows.
+- Phase 12.7: Rust Web Frameworks was completed with:
+  - Implemented Tree-sitter route extraction in `rkg-lang-rust` for Axum `.route(...)` chains and Actix-web route attribute macros.
+  - Parsed Rust handler response models from `Json<T>` return types.
+  - Mapped handler extractor dependencies for `State<T>`, `Data<T>` / `web::Data<T>`, `Json<T>` / `web::Json<T>`, and model-like `Path<T>` / `web::Path<T>` payloads through existing `ConfiguredBy` edges while filtering scalar and tuple path parameters.
+  - Wired Rust route indexing into the existing CLI indexing pipeline and `rkg routes` output.
+  - Added focused unit and CLI integration tests for route extraction, same-name handler disambiguation, response models, and extractor dependency output.
+- Phase 12.8: Rust FFI & Memory Safety was completed with:
+  - Defined core domain models `RustUnsafeBlock`, `RustUnsafeFunction`, and `RustFFIBinding` in `rkg-core`.
+  - Expanded SQLite DB schemas and persistence APIs in `rkg-db` introducing `rust_unsafe_blocks`, `rust_unsafe_functions`, and `rust_ffi_bindings` tables with cascade deletion constraints on `file_id` and performance-optimized indexes.
+  - Implemented high-fidelity Tree-sitter AST parser in `rkg-lang-rust` extracting unsafe block spans (`unsafe { ... }`), unsafe functions/traits/impl blocks, and external FFI boundary declarations (`extern "C"`, `cxx::bridge`).
+  - Implemented a premium memory safety risk profiling and safe wrapper analyzer query service `get_safety_profile` inside `rkg-query` computing risk levels, safety scores, and safe wrapper percentages.
+  - Wired safety metadata extraction automatically into the main indexing pipeline of `rkg-cli`.
+  - Implemented a premium terminal subcommand `rkg safety <symbol_or_file>` in `rkg-cli` rendering beautifully formatted, aligned audits of safety scores, risk levels, exposed/wrapped unsafe blocks, and foreign boundary interface bindings.
+  - Added comprehensive unit and integration test suites validating all parsing, persistence, query profiling, and CLI visual output flows.
+- Code quality and design-conformance pass was completed with:
+  - Audited completed implementation slices against the original project proposal, high-level architecture, and development roadmap.
+  - Closed the bounded Phase 12.7 gap for Rust model-like `Path<T>` / `web::Path<T>` extractor dependency mapping without changing schema or CLI contracts.
+  - Refactored `rkg-cli` indexing orchestration by isolating Cargo workspace metadata loading, pure dependency resolution, database persistence, and per-file indexing context.
+  - Clarified `rkg-query` public tuple return shapes with named type aliases and removed unnecessary Clippy suppressions.
+  - Synchronized README, architecture, changelog, best-practices, and workspace handoff docs with current implementation state.
+- Phase 13.1: F# parser and ecosystem tooling evaluation was completed with:
+  - Evaluated and integrated pure-Rust `tree-sitter-fsharp` parser for fast, deterministic syntax extraction.
+  - Documented the adapter boundary between fast syntax extraction and future compiler-backed `.NET` enrichment.
+  - Defined and verified complete fixture coverage for F# scripts (`.fsx`), projects (`.fsproj`), and source files (`.fs`).
+- Phase 13.2: F# symbols extraction was completed with:
+  - Extracted F# namespaces, modules (including nested and top-level), record types, discriminated unions, classes, interfaces, active patterns, and let-bound values/functions.
+  - Fully implemented dot-delimited qualified name resolution utilizing recursive AST scoping.
+  - Supported SQLite persistence of all F# symbols and exposed them cleanly to CLI query commands.
+- Phase 13.3: F# relationships was completed with:
+  - Pure Rust tree-sitter AST extraction for F# module opens, function/value references (capturing pipelines, composition, and computation expressions), and type references (handling simple types and object expressions).
+  - rusqlite indexing helpers and unified index_single_file CLI pipeline integration.
+  - Comprehensive unit tests in rkg-lang-fsharp and robust CLI integration tests validating all CLI queries (imports, callers, types, and pipeline) end-to-end.
+- Phase 13.4: F# project and dependency graph was completed with:
+  - Core domain models `FSharpProject` and `FSharpDependency` defined in `rkg-core`.
+  - SQLite schema bootstrap expansions in `rkg-db` adding `fsharp_projects` and `fsharp_dependencies` tables with cascade deletion constraints, performance-optimized indexes, and `DbStatus` row-count tracking.
+  - Persistence APIs (`insert_fsharp_project`, `insert_fsharp_dependency`, `delete_fsharp_dependencies_for_project`, `list_fsharp_projects`, `list_fsharp_dependencies`) in `rkg-db`.
+  - Robust string-scanner parsers in `rkg-indexer/fsharp_parser.rs` for `.fsproj` (NuGet PackageReference, ProjectReference, TargetFramework), `.sln` (project membership), `paket.dependencies` (global version constraints), and `paket.references` (per-project package references).
+  - CLI ingestion integration in `rkg-cli` loading, resolving, and persisting F# workspace metadata during `rkg index`.
+  - Unified `rkg workspace` command displaying F# projects alongside Cargo packages with framework and solution membership columns.
+  - Unified `rkg deps <project>` command displaying F# dependencies (NuGet packages, project references, Paket-resolved packages) alongside Cargo dependencies.
+  - Solution membership pre-computed in `FSharpWorkspaceMetadata` to avoid redundant and path-incorrect `.sln` re-reads during persistence.
+  - Comprehensive unit tests for all parsers and a full end-to-end CLI integration test (`fsharp_workspace.rs`) covering index → workspace → deps flows.
+- Phase 13.5: F# tests and ecosystem semantics was completed with:
+  - Robust Tree-sitter AST parser in `rkg-lang-fsharp` extracting xUnit/NUnit test attributes (class/member attributes) and Expecto DSL test blocks (`testList`, `testCase`, `testProperty`).
+  - Robust Tree-sitter AST parser in `rkg-lang-fsharp` extracting Giraffe pipeline routes (`GET >=> route ...`) and Saturn router builder routes (`get ...`, `post ...`).
+  - Integrated F# test and route discovery seamlessly into the main CLI indexing pipeline in `rkg-cli` and persisted routes/tests in SQLite.
+  - Added F# tests and routes to standard CLI queries (`tests`, `test-deps`, `routes`), resolving fixtures parameter dependencies as `ConfiguredBy` edges and similarity name matching as `TestedBy` edges.
+  - Comprehensive unit and integration test suites validating all parsing, persistence, and CLI query flows.
+- Phase 14.1: Mojo parser and symbol extraction was completed with:
+  - Dedicated `rkg-lang-mojo` crate binding a repo-local Tree-sitter Mojo grammar through `build.rs`.
+  - Deterministic Mojo symbol extraction for modules, classes, structs, traits, functions, and methods.
+  - Mojo file discovery for `.mojo` and `.🔥` source files in `rkg-indexer`.
+  - Main CLI indexing integration persisting Mojo symbols into SQLite.
+  - Focused parser and CLI integration tests for symbol lookup, find, and show workflows.
+- Phase 14.2: Mojo relationships and test discovery was completed with:
+  - Mojo import, call, and type-reference extraction in `rkg-lang-mojo`.
+  - Python interop reference extraction for statically visible Mojo/Python boundaries.
+  - Mojo test discovery for `Test` classes, `test_` functions, and parameter fixture dependencies.
+  - Main CLI indexing integration for Mojo relationship edges and test records.
+  - End-to-end CLI integration tests for imports, callers, callees, types, tests, and test dependencies.
+- Phase 15.1: Kotlin parser and symbol extraction was completed with:
+  - Dedicated `rkg-lang-kotlin` crate using the modern `tree-sitter-kotlin-ng` grammar.
+  - Deterministic Kotlin symbol extraction for packages, classes, objects, companion objects, interfaces, functions, methods, properties, type aliases, extension functions, and extension properties.
+  - Kotlin file discovery for `.kt` and `.kts` source files in `rkg-indexer`.
+  - Main CLI indexing integration persisting Kotlin symbols into SQLite.
+  - Parser unit tests and CLI integration tests covering indexing, symbol listing, find, and show.
+- Phase 15.2: Kotlin relationships was completed with:
+  - Robust Tree-sitter AST parsers in rkg-lang-kotlin extracting imports, calls (explicit/implicit receiver and constructor calls), type references (filtering primitives), extends class inheritance, implements interface implementations, and annotations.
+  - Seamless database wiring in rkg-cli indexing all relationship edges into SQLite.
+  - Comprehensive unit tests and full CLI E2E integration tests validating query resolution.
+- Phase 15.3: Kotlin Project, Dependency & Ktor Route Extraction was completed with:
+  - Robust build-file scanners in `rkg-indexer` parsing Gradle (`build.gradle`, `build.gradle.kts`) and Maven (`pom.xml`) files to extract internal module references and external package dependencies.
+  - Tree-sitter AST route parser in `rkg-lang-kotlin` traversing Ktor route builders and resolving path nested hierarchies and terminal HTTP methods.
+  - Integrated Kotlin workspace metadata scanning and per-file Ktor route extraction into the CLI ingestion pipeline.
+  - Enhanced unified CLI subcommands `rkg workspace`, `rkg deps <name>`, and `rkg routes` to format and render Kotlin artifacts.
+  - Full E2E CLI integration testing covering index -> workspace -> deps -> routes indexing pipelines.
+- Phase 15.4: Kotlin coroutine and channel topology was completed with:
+  - Tree-sitter-backed Kotlin coroutine extraction for statically obvious `launch` and `async` spawn builders.
+  - Static channel topology extraction for `Channel(...)` declarations plus send/receive pairing heuristics.
+  - Select-block detection for Kotlin channel receive builders.
+  - CLI indexing integration persisting `Spawns`, `SendsTo`, and concurrency topology records through the existing generic concurrency infrastructure.
+  - End-to-end CLI integration tests validating `rkg concurrency`, `rkg topology`, and `rkg impact` on Kotlin coroutine/channel flows.
+- Phase 15.5a: Kotlin Flow topology thin slice was completed with:
+  - Bounded Flow topology extraction for direct `flow`, `channelFlow`, `callbackFlow`, `map`, `flatMapLatest`, `catch`, `collect`, `stateIn`, and `shareIn` patterns while preserving the existing generic concurrency schema.
+  - Flow producer-to-transformer and producer-to-collector propagation through existing `SendsTo` edges and concurrency records so `rkg concurrency`, `rkg topology`, and `rkg impact` surface basic Kotlin Flow dataflow.
+  - Focused Kotlin relationship enrichment capturing helper calls inside supported Flow pipelines for `rkg callers` and `rkg callees`.
+  - Parser unit coverage and end-to-end CLI integration coverage for the bounded Flow slice.
+- Phase 15.5b: Kotlin generated-code provenance and deeper Flow topology was completed with:
+  - Custom generated source directories parsing from Gradle configurations, storing in the `kotlin_projects` table.
+  - Bootstrapped `generated_symbols` table to track generated symbols and record deterministic `ksp`, `kapt`, or `generated` provenance.
+  - Implemented automatic resolution of generated symbols back to annotated source classes (supporting Serializers, Room DAOs, Dagger components, and Moshi adapters).
+  - Extended Flow topology parsing to support multi-source Flow operators (`combine`, `zip`) and richer collection/spawn methods (`collectLatest`, `collectIndexed`, `launchIn`).
+  - Added CLI `rkg show` visualization of symbol generated provenance.
+  - Added comprehensive parser unit test coverage and E2E integration test suite (`crates/rkg-cli/tests/kotlin_provenance_flow.rs`).
+- Phase 15.6: Kotlin Android component and resource linkage was completed with:
+  - Custom XML resource parsers in `rkg-indexer::android_parser` extracting components (activities, services, content providers, broadcast receivers, application declarations, permissions, intent filters) from `AndroidManifest.xml`, layouts (implicit layout resources, IDs, and references), navigation graphs (destination IDs and target class/layout links), and values (strings, colors, dimens).
+  - Extended language detection in `rkg-indexer` mapping `.xml` files to `"xml"` language.
+  - Extended tree-sitter AST relationships traversal in `rkg-lang-kotlin` to extract resource usage patterns (`R.layout.*`, `R.id.*`, `R.string.*`, `R.drawable.*`, `R.color.*`, `R.dimen.*`) as property references.
+  - Ingestion pipeline support in `rkg-cli` parsing XML files and persisting components in `android_components` and resources in `android_resources` tables.
+  - Represented resources and manifest component classes as virtual symbols in the `symbols` table to automatically resolve code references post-indexing.
+  - Added CLI `rkg android components` and `rkg android resources` subcommands formatting and outputting beautifully aligned tables.
+  - Full E2E CLI integration test suite (`crates/rkg-cli/tests/android_linkage.rs`) validating parser accuracy, database persistence, and CLI command outputs.
+  - Checked-in Android fixture repository under `fixtures/sample-repos/kotlin-android-basic/`.
+- Phase 16.1: Swift parser and symbol extraction was completed with:
+  - Created a dedicated `rkg-lang-swift` workspace crate utilizing the modern `tree-sitter-swift` grammar (version `0.7.2`).
+  - Implemented a high-fidelity recursive AST parser extracting Swift symbols (modules, structs, classes, enums, protocols/interfaces, extensions, functions, properties, and type aliases) with precise source ranges and qualified dot-separated scoping.
+  - Integrated `.swift` file language detection in `rkg-indexer`.
+  - Integrated the Swift symbol extractor into the core `rkg-cli` indexing pipeline and persisted symbols in local SQLite.
+  - Added comprehensive parser unit tests and full end-to-end integration tests (`swift_symbols.rs`) validating indexing, SQLite persistence, and command lookup/rendering.
+- Phase 16.2: Swift relationships was completed with:
+  - Implemented robust recursive tree-sitter AST parsers in `rkg-lang-swift` to extract Swift imports, method and function calls (including self-calls and method targets), type references (parameter, field, and return type annotations, filtering out common Swift primitive types), protocol conformances (struct/class/enum declarations), extensions, and attributes (e.g. `@objc`, `@discardableResult`).
+  - Integrated Swift relationship extraction seamlessly into the CLI indexing pipeline in `rkg-cli`, persisting all edges (`Imports`, `Calls`, `ReferencesType`, `Implements`, `Extends`, `ModifiedWith`) into the local SQLite database.
+  - Added comprehensive parser unit tests in `rkg-lang-swift` and full E2E CLI integration tests (`swift_relationships.rs`) validating indexing, SQLite persistence, and CLI commands (`imports`, `callers`, `callees`, `types`).
+- Phase 16.3: Swift project and ecosystem semantics was completed with:
+  - Swift Package Manager (SPM) dependency graph extraction from `Package.swift` parsing.
+  - XCTest and Swift Testing framework test case discovery (XCTestCase classes/methods and `@Test` annotations).
+  - Swift Concurrency Topology extraction (`Task`, `Task.detached`, `AsyncStream`, `for await` loops).
+  - CLI integration: `rkg workspace` displays Swift Projects, `rkg deps <name>` displays SPM dependencies, `rkg tests` and `rkg concurrency` work cleanly for Swift.
+- SQLite FTS5 search backend was completed with:
+  - Bootstrapped `docs_fts` and `symbols_fts` FTS5 virtual content tables in `rkg-db` with automatic sync triggers.
+  - BM25-ranked `rkg search <query>` command across both symbols and docs with excerpt previews.
+  - Upgraded `rkg doc-search` to use FTS5 with transparent LIKE fallback.
+- Phase 18: Packaging and Distribution was completed with:
+  - Cross-platform GitHub Actions release workflow (`.github/workflows/release.yml`) triggered on version tags building Linux x86_64, macOS aarch64, and Windows x86_64 `rkg` binaries and attaching them to GitHub Releases.
+  - `rkg-completions` standalone Clap helper binary in `crates/rkg-cli` generating bash, zsh, and fish completion scripts.
+  - Extracted `Cli` and sub-command enums into `crates/rkg-cli/src/cli_def.rs` with a `lib.rs` re-export so both `rkg` and `rkg-completions` share a single definition.
+  - Generated `## Command Reference (Generated)` section in `docs/user-manual.md` covering all `rkg` subcommands with flags and descriptions.
+  - Added `scripts/gen_command_ref.sh` for idempotent command-reference regeneration.
+- Phase 18.3: Distribution completion was completed with:
+  - Release checklist documentation covering GitHub Release assets, shell completions, Homebrew checksum/formula update flow, and Cargo packaging validation.
+  - Schema reference documentation covering core SQLite tables, key columns, cascade behavior, and command population surfaces.
+  - Language adapter guide documenting how to add a new `rkg-lang-*` crate, wire file discovery and CLI indexing, persist/query facts, and write focused parser/integration tests.
+  - Workspace package metadata inheritance for description and README fields so `cargo package --workspace --allow-dirty --list` validates publishable metadata and included assets cleanly.
+  - User manual links and regression tests ensuring distribution reference docs stay discoverable.
+- Phase 5.4: Coverage Integration was completed with:
+  - Zero-dependency XML and LCOV coverage parsers, supporting statement and branch coverage extraction.
+  - SQL persistence for coverage profiles mapped to files, symbols, report paths, and test suites.
+  - CLI query commands `rkg import-coverage <path> [--test-suite <name>]` and `rkg coverage <target>`, reporting statement/branch rates, uncovered spans, and test breakdowns.
+  - E2E integration test suite validating coverage mapping, test suite overrides, and file-level/symbol-level queries.
+- Phase 16.4: Swift UI and macro depth was completed with:
+  - Extracted SwiftUI property wrapper attributes (`@State`, `@Binding`, `@ObservedObject`, `@EnvironmentObject`) and UIKit attributes (`@IBOutlet`, `@IBAction`) into SQLite as `ModifiedWith` edges.
+  - Extracted nested view compositions, `NavigationLink`, and freestanding `#Preview` macros inside SwiftUI `View` bodies as `Calls` edges.
+  - Extracted UIKit/AppKit storyboard/nib string references from instantiation calls (such as `UIStoryboard(name: "Main")`, `UINib(nibName: "CustomCell")`, and `instantiateViewController(withIdentifier: "DetailVC")`) mapping to virtual symbols `storyboard::Main`, `nib::CustomCell`, and `viewcontroller::DetailVC`.
+  - Added CLI queries support and comprehensive unit/integration test coverage.
+- Phase 17: Evaluation and benchmarking was completed with:
+  - Configured 18 reproducible, network-isolated benchmark tasks in `fixtures/benchmarks/tasks.json` across Python, Rust, F#, Mojo, Kotlin, and Swift (3 tasks per language family).
+  - Built a static grep-based baseline simulator matching target symbol word boundaries inside candidate codebases.
+  - Implemented the `rkg bench` CLI subcommand executing full repo copying, temporary git workspace bootstrapping, isolated indexing, context packing, and scoring.
+  - Designed scoring metrics computing file and symbol precision, recall, F1, latency, token reduction, and task success.
+  - Added `scripts/run_benchmarks.sh` for convenient script-driven execution.
+  - Covered the implementation with dedicated E2E integration tests and scoring unit tests.
+
+## Present
+- **Immediate next target: None**
+  - Status: all spec-defined phases completed.
+- Current workspace release version is `1.0.12`.
+- Current status was reviewed on 2026-06-08 against workspace crates, command definitions, database schema APIs, MCP stdio transcript/configuration coverage, and integration tests.
+
+## Versioning
+- Python support completion defines the `1.0.0` baseline.
+- Each completed additional language adapter increments the patch version by `0.0.1`.
+- Completed additional language adapters are Rust (`1.0.1`), F# (`1.0.2`), Mojo (`1.0.3`), Kotlin (`1.0.4`), and Swift (`1.0.5`).
+- FTS5 search backend and Phase 18 Packaging and Distribution were released together as `1.0.6`.
+- Phase 11.6 Python tensor shape and dataframe lineage depth was released as `1.0.7`.
+- Phase 11.7 Python functional pipeline semantics was released as `1.0.8`.
+- Phase 15.5's Kotlin generated-code provenance and deeper Flow topology was released as `1.0.9`.
+- Phase 15.6's Kotlin Android component and resource linkage was released as `1.0.10`.
+- Phase 16.4's Swift UI and macro depth was released as `1.0.11`.
+- Phase 17's Evaluation and benchmarking was released as `1.0.12`.
+
+## Future
+
+- (None planned at this time)

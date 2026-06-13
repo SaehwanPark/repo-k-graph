@@ -1,0 +1,13 @@
+[package]
+name = "rkg-lang-rust"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+
+[dependencies]
+rkg-core.workspace = true
+tree-sitter = "0.25"
+tree-sitter-rust = "0.24.2"

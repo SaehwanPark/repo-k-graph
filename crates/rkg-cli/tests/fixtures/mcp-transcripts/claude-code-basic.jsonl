@@ -1,0 +1,3 @@
+{"jsonrpc":"2.0","id":"claude-init","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"claude-code","version":"smoke"}}}
+{"jsonrpc":"2.0","id":"claude-ping","method":"ping","params":{}}
+{"jsonrpc":"2.0","id":"claude-symbol","method":"tools/call","params":{"name":"get_symbol","arguments":{"qualified_name":"src.math::calculate_sum"}}}

@@ -1,0 +1,12 @@
+[package]
+name = "rkg-db"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+
+[dependencies]
+rkg-core.workspace = true
+rusqlite = { version = "0.32", features = ["bundled"] }

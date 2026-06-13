@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: rkg
+            asset_name: rkg-linux-x86_64
+            gen_completions: true
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            binary: rkg
+            asset_name: rkg-macos-aarch64
+            gen_completions: false
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: rkg.exe
+            asset_name: rkg-windows-x86_64.exe
+            gen_completions: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build rkg release binary
+        run: cargo build --release --bin rkg --target ${{ matrix.target }}
+
+      - name: Build rkg-completions binary (Linux only)
+        if: matrix.gen_completions
+        run: cargo build --release --bin rkg-completions --target ${{ matrix.target }}
+
+      - name: Generate shell completions (Linux only)
+        if: matrix.gen_completions
+        shell: bash
+        run: |
+          mkdir -p completions
+          ./target/${{ matrix.target }}/release/rkg-completions bash  > completions/rkg.bash
+          ./target/${{ matrix.target }}/release/rkg-completions zsh   > completions/_rkg
+          ./target/${{ matrix.target }}/release/rkg-completions fish  > completions/rkg.fish
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: target/${{ matrix.target }}/release/${{ matrix.binary }}
+
+      - name: Upload shell completions (Linux only)
+        if: matrix.gen_completions
+        uses: actions/upload-artifact@v4
+        with:
+          name: shell-completions
+          path: completions/
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Stage release assets
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          cp artifacts/rkg-linux-x86_64/rkg release-assets/rkg-linux-x86_64
+          cp artifacts/rkg-macos-aarch64/rkg release-assets/rkg-macos-aarch64
+          cp "artifacts/rkg-windows-x86_64.exe/rkg.exe" release-assets/rkg-windows-x86_64.exe
+
+      - name: Create release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release-assets/rkg-linux-x86_64
+            release-assets/rkg-macos-aarch64
+            release-assets/rkg-windows-x86_64.exe
+            artifacts/shell-completions/rkg.bash
+            artifacts/shell-completions/_rkg
+            artifacts/shell-completions/rkg.fish

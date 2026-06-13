@@ -1,0 +1,43 @@
+[package]
+name = "rkg-cli"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+
+[lib]
+name = "rkg_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rkg"
+path = "src/main.rs"
+
+[[bin]]
+name = "rkg-completions"
+path = "src/completions.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+clap_complete = "4.5"
+rkg-core = { path = "../rkg-core" }
+rkg-db = { path = "../rkg-db" }
+rkg-indexer = { path = "../rkg-indexer" }
+rkg-lang-python = { path = "../rkg-lang-python" }
+rkg-lang-rust = { path = "../rkg-lang-rust" }
+rkg-lang-fsharp = { path = "../rkg-lang-fsharp" }
+rkg-lang-mojo = { path = "../rkg-lang-mojo" }
+rkg-lang-kotlin = { path = "../rkg-lang-kotlin" }
+rkg-lang-swift = { path = "../rkg-lang-swift" }
+rkg-mcp = { path = "../rkg-mcp" }
+rkg-query = { path = "../rkg-query" }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tempfile = "3.13"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+

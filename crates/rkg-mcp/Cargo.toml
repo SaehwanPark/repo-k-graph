@@ -1,0 +1,19 @@
+[package]
+name = "rkg-mcp"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+
+[dependencies]
+rkg-core = { path = "../rkg-core" }
+rkg-db = { path = "../rkg-db" }
+rkg-query = { path = "../rkg-query" }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+tempfile = "3.13"

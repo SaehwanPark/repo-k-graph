@@ -1,0 +1,15 @@
+[package]
+name = "rkg-lang-mojo"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+
+[dependencies]
+rkg-core.workspace = true
+tree-sitter = "0.25"
+
+[build-dependencies]
+cc = "1.0"

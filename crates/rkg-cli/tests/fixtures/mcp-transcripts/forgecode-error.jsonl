@@ -1,0 +1,2 @@
+{"jsonrpc":"2.0","id":"forge-init","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"forgecode","version":"smoke"}}}
+{"jsonrpc":"2.0","id":"forge-error","method":"tools/call","params":{"name":"get_symbol","arguments":{}}}
