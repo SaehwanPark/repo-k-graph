@@ -9,7 +9,7 @@ repository.workspace = true
 
 [dependencies]
 rkg-core.workspace = true
-rkg-db = { path = "../rkg-db" }
+rkg-db.workspace = true
 rusqlite = { version = "0.32", features = ["bundled"] }
 
 [dev-dependencies]

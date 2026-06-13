@@ -24,4 +24,15 @@ readme = "README.md"
 repository = "https://github.com/SaehwanPark/repo-k-graph"
 
 [workspace.dependencies]
-rkg-core = { path = "crates/rkg-core" }
+rkg-cli = { path = "crates/rkg-cli", version = "1.0.12" }
+rkg-core = { path = "crates/rkg-core", version = "1.0.12" }
+rkg-db = { path = "crates/rkg-db", version = "1.0.12" }
+rkg-indexer = { path = "crates/rkg-indexer", version = "1.0.12" }
+rkg-lang-fsharp = { path = "crates/rkg-lang-fsharp", version = "1.0.12" }
+rkg-lang-kotlin = { path = "crates/rkg-lang-kotlin", version = "1.0.12" }
+rkg-lang-mojo = { path = "crates/rkg-lang-mojo", version = "1.0.12" }
+rkg-lang-python = { path = "crates/rkg-lang-python", version = "1.0.12" }
+rkg-lang-rust = { path = "crates/rkg-lang-rust", version = "1.0.12" }
+rkg-lang-swift = { path = "crates/rkg-lang-swift", version = "1.0.12" }
+rkg-mcp = { path = "crates/rkg-mcp", version = "1.0.12" }
+rkg-query = { path = "crates/rkg-query", version = "1.0.12" }

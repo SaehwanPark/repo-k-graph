@@ -9,7 +9,7 @@ repository.workspace = true
 
 [dependencies]
 rkg-core.workspace = true
-rkg-lang-python = { path = "../rkg-lang-python" }
+rkg-lang-python.workspace = true
 ignore = "0.4"
 sha2 = "0.10"
 
