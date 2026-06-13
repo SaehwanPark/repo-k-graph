@@ -37,6 +37,19 @@ Kotlin Android integration:
 - [High-level Architecture Proposal](docs/architecture.md)
 - [Development Roadmap](docs/dev-roadmap.md)
 
+## Install
+
+Install the published CLI with Cargo:
+
+```sh
+cargo install rkg-cli --locked
+rkg --help
+```
+
+The Cargo package is `rkg-cli`. The primary installed executable is `rkg`;
+Cargo also installs `rkg-completions` for shell completion generation. From a
+source checkout, use `cargo run -p rkg-cli -- <command>` for the same commands.
+
 ## Workspace Layout
 
 ```text

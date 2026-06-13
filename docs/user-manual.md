@@ -51,14 +51,30 @@ Prerequisites:
 - Git, for repository root detection and Git history indexing.
 - Optional `cargo expand`, only when running `rkg index --expand` for Rust macro-expanded indexing.
 
-From the repository root:
+### Install From crates.io
+
+Install the published CLI with Cargo:
+
+```sh
+cargo install rkg-cli --locked
+rkg --help
+```
+
+The Cargo package is `rkg-cli`. The primary installed executable is `rkg`;
+Cargo also installs `rkg-completions` for shell completion generation.
+
+### Build From Source
+
+From a source checkout:
 
 ```sh
 cargo build --workspace
 cargo run -p rkg-cli -- --help
 ```
 
-The binary package is `rkg-cli`, and the executable name is `rkg`.
+Commands in this manual use the source-checkout form
+`cargo run -p rkg-cli -- <command>`. If you installed the CLI with Cargo,
+replace that prefix with `rkg`.
 
 Distribution maintainers should use the release and packaging checklist in
 `docs/release-checklist.md`. Schema details are documented in
@@ -413,9 +429,10 @@ organized around practical user tasks consistent with the
 
 ## Troubleshooting
 
-- Run `cargo run -p rkg-cli -- db status` first when commands return no data.
-- Run `cargo run -p rkg-cli -- index --force` after large file moves or branch
-  changes.
+- Run `rkg db status`, or `cargo run -p rkg-cli -- db status` from a source
+  checkout, first when commands return no data.
+- Run `rkg index --force`, or `cargo run -p rkg-cli -- index --force` from a
+  source checkout, after large file moves or branch changes.
 - Use exact qualified names from `rkg symbols` or `rkg find` when `show`,
   `impact`, or `context` cannot resolve a target.
 - Install `cargo expand` before using `rkg index --expand`.
